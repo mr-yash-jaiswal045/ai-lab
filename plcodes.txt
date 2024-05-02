@@ -1,0 +1,356 @@
+import org.jpl7.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+public class Main {
+public static void main(String[] args) {
+System.out.println("==== Missionaries and Cannibals Problem ====");
+System.out.println("Choose the search method: ");
+System.out.println("\t 1. Breadth-first search");
+System.out.println("\t 2. Depth-limited search");
+System.out.print("\nType your choice and press ENTER: ");
+String optionStr = null;
+try {
+BufferedReader in = new BufferedReader(new
+InputStreamReader(System.in));
+optionStr = in.readLine();
+} catch (IOException e) {
+System.out.println("[ERROR] Fail to read the typed option.");
+e.printStackTrace();
+}
+int option = Integer.parseInt(optionStr);
+State initialState = new State(3, 3, Position.LEFT, 0, 0);
+switch (option) {
+case 1:
+executeBFS(initialState);
+break;
+case 2:
+executeDLS(initialState);
+break;
+default:
+System.out.println("[ERROR] Invalid search option.");
+}
+}
+private static void executeBFS(State initialState) {
+loadPrologFile("missionaries_cannibals.pl");
+Query q = new Query("bfs", new Term[]{});
+if (q.hasSolution()) {
+Term solution = q.oneSolution().get("Solution");
+printSolution(solution);
+} else {
+System.out.println("No solution found.");
+}
+}
+private static void executeDLS(State initialState) {
+loadPrologFile("missionaries_cannibals.pl");
+Query q = new Query("dfs", new Term[]{});
+if (q.hasSolution()) {
+Term solution = q.oneSolution().get("Solution");
+printSolution(solution);
+} else {
+System.out.println("No solution found.");
+}
+}
+private static void loadPrologFile(String filename) {
+Query q1 = new Query("consult", new Term[]{new Atom(filename)});
+System.out.println((q1.hasSolution() ? "Succeeded" : "Failed") + " to
+load the file.");
+}
+private static void printSolution(Term solution) {
+System.out.println("\nSolution: ");
+System.out.println(solution);
+}
+}
+enum Position {RIGHT, LEFT}
+class State {
+private int cannibalLeft;
+private int missionaryLeft;
+private int cannibalRight;
+private int missionaryRight;
+private Position boat;
+private State parentState;
+public State(int cannibalLeft, int missionaryLeft, Position boat,
+int cannibalRight, int missionaryRight) {
+this.cannibalLeft = cannibalLeft;
+this.missionaryLeft = missionaryLeft;
+this.boat = boat;
+this.cannibalRight = cannibalRight;
+this.missionaryRight = missionaryRight;
+}
+public boolean isGoal() {
+return cannibalLeft == 0 && missionaryLeft == 0;
+}
+public boolean isValid() {
+if (missionaryLeft >= 0 && missionaryRight >= 0 && cannibalLeft >= 0
+&& cannibalRight >= 0
+&& (missionaryLeft == 0 || missionaryLeft >= cannibalLeft)
+&& (missionaryRight == 0 || missionaryRight >=
+cannibalRight)) {
+return true;
+}
+return false;
+}
+public List<State> generateSuccessors() {
+List<State> successors = new ArrayList<State>();
+if (boat == Position.LEFT) {
+testAndAdd(successors, new State(cannibalLeft, missionaryLeft - 2,
+Position.RIGHT,
+cannibalRight, missionaryRight + 2)); // Two missionaries
+cross left to right.
+testAndAdd(successors, new State(cannibalLeft - 2, missionaryLeft,
+Position.RIGHT,
+cannibalRight + 2, missionaryRight)); // Two cannibals
+cross left to right.
+testAndAdd(successors, new State(cannibalLeft - 1, missionaryLeft
+- 1, Position.RIGHT,
+cannibalRight + 1, missionaryRight + 1)); // One
+missionary and one cannibal cross left to right.
+testAndAdd(successors, new State(cannibalLeft, missionaryLeft - 1,
+Position.RIGHT,
+cannibalRight, missionaryRight + 1)); // One missionary
+crosses left to right.
+testAndAdd(successors, new State(cannibalLeft - 1, missionaryLeft,
+Position.RIGHT,
+cannibalRight + 1, missionaryRight)); // One cannibal
+crosses left to right.
+} else {
+testAndAdd(successors, new State(cannibalLeft, missionaryLeft + 2,
+Position.LEFT,
+cannibalRight, missionaryRight - 2)); // Two missionaries
+cross right to left.
+testAndAdd(successors, new State(cannibalLeft + 2, missionaryLeft,
+Position.LEFT,
+cannibalRight - 2, missionaryRight)); // Two cannibals
+cross right to left.
+testAndAdd(successors, new State(cannibalLeft + 1, missionaryLeft
++ 1, Position.LEFT,
+cannibalRight - 1, missionaryRight - 1)); // One
+missionary and one cannibal cross right to left.
+testAndAdd(successors, new State(cannibalLeft, missionaryLeft + 1,
+Position.LEFT,
+cannibalRight, missionaryRight - 1)); // One missionary
+crosses right to left.
+testAndAdd(successors, new State(cannibalLeft + 1, missionaryLeft,
+Position.LEFT,
+cannibalRight - 1, missionaryRight)); // One cannibal
+crosses right to left.
+}
+return successors;
+}
+private void testAndAdd(List<State> successors, State newState) {
+if (newState.isValid()) {
+newState.setParentState(this);
+successors.add(newState);
+}
+}
+public int getCannibalLeft() {
+return cannibalLeft;
+}
+public void setCannibalLeft(int cannibalLeft) {
+this.cannibalLeft = cannibalLeft;
+}
+public int getMissionaryLeft() {
+return missionaryLeft;
+}
+public void setMissionaryLeft(int missionaryLeft) {
+this.missionaryLeft = missionaryLeft;
+}
+public int getCannibalRight() {
+return cannibalRight;
+}
+public void setCannibalRight(int cannibalRight) {
+this.cannibalRight = cannibalRight;
+}
+public int getMissionaryRight() {
+return missionaryRight;
+}
+public void setMissionaryRight(int missionaryRight) {
+this.missionaryRight = missionaryRight;
+}
+public void goToLeft() {
+boat = Position.LEFT;
+}
+public void goToRight() {
+boat = Position.RIGHT;
+}
+public boolean isOnLeft() {
+return boat == Position.LEFT;
+}
+public boolean isOnRigth() {
+return boat == Position.RIGHT;
+}
+public State getParentState() {
+return parentState;
+}
+public void setParentState(State parentState) {
+this.parentState = parentState;
+}
+@Override
+public String toString() {
+if (boat == Position.LEFT) {
+return "(" + cannibalLeft + "," + missionaryLeft + ",L,"
++ cannibalRight + "," + missionaryRight + ")";
+} else {
+return "(" + cannibalLeft + "," + missionaryLeft + ",R,"
++ cannibalRight + "," + missionaryRight + ")";
+}
+}
+@Override
+public boolean equals(Object obj) {
+if (!(obj instanceof State)) {
+return false;
+}
+State s = (State) obj;
+return (s.cannibalLeft == cannibalLeft && s.missionaryLeft ==
+missionaryLeft
+&& s.boat == boat && s.cannibalRight == cannibalRight
+&& s.missionaryRight == missionaryRight);
+}
+}
+---------------------------------------------------------------------------------------------------------------------------
+
+import org.jpl7.*;
+
+public class PrologBFSDFS {
+
+    public static void loadPrologFile(String filename) {
+        Query q1 = new Query("consult", new Term[] {new Atom(filename)});
+        System.out.println((q1.hasSolution() ? "succeeded" : "failed") + " to load the file.");
+    }
+
+    public static void bfs() {
+        Query q2 = new Query("bfs", new Term[] {});
+        while (q2.hasMoreSolutions()) {
+            System.out.println(q2.nextSolution());
+        }
+    }
+
+    public static void dfs() {
+        Query q3 = new Query("dfs", new Term[] {});
+        while (q3.hasMoreSolutions()) {
+            System.out.println(q3.nextSolution());
+        }
+    }
+
+    public static void nQueens(int n) {
+        Query q4 = new Query("n_queens(" + n + ")");
+        while (q4.hasMoreSolutions()) {
+            System.out.println(q4.nextSolution());
+        }
+    }
+
+    public static void main(String[] args) {
+        // Load Prolog file
+        loadPrologFile("graph_traversal.pl");
+
+        // Execute BFS
+        System.out.println("BFS:");
+        bfs();
+
+        // Execute DFS
+        System.out.println("DFS:");
+        dfs();
+
+        // Solve N-Queens problem with board size 8
+        System.out.println("N-Queens:");
+        nQueens(8);
+    }
+}
+----------------------------------------------------------------------------------------------------------------------------
+
+import java.util.ArrayList;
+import java.util.List;
+public class WaterJugProblem {
+public static void main(String[] args) {
+List<Jug> jugs = new ArrayList<>();
+jugs.add(new Jug(4));
+jugs.add(new Jug(3));
+solve(jugs, 2);
+}
+private static void solve(List<Jug> jugs, int goal) {
+Queue<State> queue = new LinkedList<>();
+queue.add(new State(jugs));
+while (!queue.isEmpty()) {
+State state = queue.poll();
+if (state.getJug(0).getWater() == goal) {
+// Print the solution
+System.out.println("Solution found!");
+System.out.println(state);
+return;
+}
+List<State> nextStates = generateNextStates(state);
+for (State nextState : nextStates) {
+queue.add(nextState);
+}
+}
+System.out.println("No solution found!");
+}
+private static List<State> generateNextStates(State state) {
+List<State> nextStates = new ArrayList<>();
+nextStates.add(new State(state.getJug(0).pourWater(state.getJug(1))));
+nextStates.add(new State(state.getJug(1).pourWater(state.getJug(0))));
+nextStates.add(new State(state.getJug(0).empty()));
+nextStates.add(new State(state.getJug(1).empty()));
+nextStates.add(new State(state.getJug(0).fill()));
+nextStates.add(new State(state.getJug(1).fill()));
+return nextStates;
+}
+private static class Jug {
+private int capacity;
+private int water;
+public Jug(int capacity) {
+this.capacity = capacity;
+this.water = 0;
+}
+public int getCapacity() {
+return capacity;
+}
+public int getWater() {
+return water;
+}
+public void setWater(int water) {
+this.water = water;
+}
+public Jug pourWater(Jug otherJug) {
+int amount = Math.min(this.water, otherJug.getCapacity() -
+otherJug.getWater());
+this.water -= amount;
+otherJug.water += amount;
+return this;
+}
+public Jug empty() {
+this.water = 0;
+return this;
+}
+public Jug fill() {
+this.water = this.capacity;
+return this;
+}
+public String toString() {
+return "Jug{" +
+"capacity=" + capacity +
+", water=" + water +
+'}';
+}
+}
+private static class State {
+private List<Jug> jugs;
+public State(List<Jug> jugs) {
+this.jugs = jugs;
+}
+public List<Jug> getJugs() {
+return jugs;
+}
+public Jug getJug(int index) {
+return jugs.get(index);
+}
+public String toString() {
+return "State{" +
+"jugs=" + jugs +
+'}’;
+}
+}
+}
+

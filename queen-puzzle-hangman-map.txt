@@ -1,0 +1,535 @@
+import java.io.*;
+import java.util.*;
+
+class EightPuzzle {
+    public static int N = 3;
+
+    public static class Node {
+        // stores the parent node of the current node
+        // helps in tracing path when the answer is found
+        Node parent;
+        int mat[][] = new int[N][N]; // stores matrix
+        int x, y; // stores blank tile coordinates
+        int cost; // stores the number of misplaced tiles
+        int level; // stores the number of moves so far
+    }
+
+    // Function to print N x N matrix
+    public static void printMatrix(int mat[][]) {
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                System.out.print(mat[i][j] + " ");
+            }
+            System.out.println("");
+        }
+    }
+
+    // Function to allocate a new node
+    public static Node newNode(int mat[][], int x, int y, int newX, int newY, int level, Node parent) {
+        Node node = new Node();
+        node.parent = parent; // set pointer for path to root
+
+        // copy data from parent node to current node
+        node.mat = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                node.mat[i][j] = mat[i][j];
+            }
+        }
+
+        // move tile by 1 position
+        int temp = node.mat[x][y];
+        node.mat[x][y] = node.mat[newX][newY];
+        node.mat[newX][newY] = temp;
+
+        node.cost = Integer.MAX_VALUE; // set number of misplaced tiles
+        node.level = level; // set number of moves so far
+
+        // update new blank tile coordinates
+        node.x = newX;
+        node.y = newY;
+
+        return node;
+    }
+
+    // bottom, left, top, right
+    public static int row[] = { 1, 0, -1, 0 };
+    public static int col[] = { 0, -1, 0, 1 };
+
+    // Function to calculate the number of misplaced tiles
+    // ie. number of non-blank tiles not in their goal position
+    public static int calculateCost(int initialMat[][], int finalMat[][]) {
+        int count = 0;
+        for (int i = 0; i < N; i++)
+            for (int j = 0; j < N; j++)
+                if (initialMat[i][j] != 0 && initialMat[i][j] != finalMat[i][j])
+                    count++;
+        return count;
+    }
+
+    // Function to check if (x, y) is a valid matrix coordinate
+    public static int isSafe(int x, int y) {
+        return (x >= 0 && x < N && y >= 0 && y < N) ? 1 : 0;
+    }
+
+    // print path from root node to destination node
+    public static void printPath(Node root) {
+        if (root == null) {
+            return;
+        }
+        printPath(root.parent);
+        printMatrix(root.mat);
+        System.out.println("");
+    }
+
+    // Comparison object to be used to order the heap
+    public static class comp implements Comparator<Node> {
+        @Override
+        public int compare(Node lhs, Node rhs) {
+            return (lhs.cost + lhs.level) > (rhs.cost + rhs.level) ? 1 : -1;
+        }
+    }
+
+    // Function to solve N*N - 1 puzzle algorithm using
+    // Branch and Bound. x and y are blank tile coordinates
+    // in initial state
+    public static void solve(int initialMat[][], int x, int y, int finalMat[][]) {
+        // Create a priority queue to store live nodes of search tree
+        PriorityQueue<Node> pq = new PriorityQueue<>(new comp());
+
+        // create a root node and calculate its cost
+        Node root = newNode(initialMat, x, y, x, y, 0, null);
+        root.cost = calculateCost(initialMat, finalMat);
+
+        // Add root to list of live nodes;
+        pq.add(root);
+
+        // Finds a live node with least cost,
+        // add its childrens to list of live nodes and
+        // finally deletes it from the list.
+        while (!pq.isEmpty()) {
+            Node min = pq.peek(); // Find a live node with least estimated cost
+            pq.poll(); // The found node is deleted from the list of live nodes
+
+            // if min is an answer node
+            if (min.cost == 0) {
+                printPath(min); // print the path from root to destination;
+                return;
+            }
+            // do for each child of min
+            // max 4 children for a node
+            for (int i = 0; i < 4; i++) {
+                if (isSafe(min.x + row[i], min.y + col[i]) > 0) {
+                    // create a child node and calculate
+                    // its cost
+                    Node child = newNode(min.mat, min.x, min.y, min.x + row[i], min.y + col[i], min.level + 1, min);
+                    child.cost = calculateCost(child.mat, finalMat);
+
+                    // Add child to list of live nodes
+                    pq.add(child);
+                }
+            }
+        }
+    }
+
+    // Driver Code
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        // Initial configuration
+        System.out.println("Enter the initial configuration of the puzzle:");
+        int[][] initialMat = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                initialMat[i][j] = scanner.nextInt();
+            }
+        }
+
+        // Final configuration
+        System.out.println("Enter the final configuration of the puzzle:");
+        int[][] finalMat = new int[N][N];
+        for (int i = 0; i < N; i++) {
+            for (int j = 0; j < N; j++) {
+                finalMat[i][j] = scanner.nextInt();
+            }
+        }
+
+        // Blank tile coordinates in initial configuration
+        System.out.println("Enter the coordinates of the blank tile in the initial configuration (0-indexed):");
+        int x = scanner.nextInt();
+        int y = scanner.nextInt();
+
+        solve(initialMat, x, y, finalMat);
+
+        scanner.close();
+    }
+}
+----------------------------------------------------------------------------------------------------------------------------
+
+import java.util.Arrays;
+class EightQueen {
+    static final int N = 8;
+    static boolean isSafe(int[][] board, int row, int col) {
+        for (int x = 0; x < col; x++)
+            if (board[row][x] == 1)
+                return false;
+        for (int x = row, y = col; x >= 0 && y >= 0; x--, y--)
+            if (board[x][y] == 1)
+                return false;
+        for (int x = row, y = col; x < N && y >= 0; x++, y--)
+            if (board[x][y] == 1)
+                return false;
+        return true;
+    }
+    static boolean solveNQueens(int[][] board, int col) {
+        if (col == N) {
+            for (int[] row : board)
+                System.out.println(Arrays.toString(row));
+            System.out.println();
+            return true;
+        }
+        for (int i = 0; i < N; i++) {
+            if (isSafe(board, i, col)) {
+                board[i][col] = 1;
+                if (solveNQueens(board, col + 1))
+                    return true;
+                board[i][col] = 0;
+            }
+        }
+        return false;
+    }
+    public static void main(String[] args) {
+        int[][] board = new int[N][N];
+        if (!solveNQueens(board, 0))
+            System.out.println("No solution found");
+    }
+}
+--------------------------------------------------------------------
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+public class EightQueenCompare {
+    static int bruteForceSteps = 0;
+    static int geneticSteps = 0;
+
+    public static void main(String[] args) {
+        int n = 8;
+
+        // Brute Force approach
+        bruteForce(n);
+        System.out.println("Brute Force Steps: " + bruteForceSteps);
+
+        // Genetic algorithm approach
+        genetic(n);
+        System.out.println("Genetic Algorithm Steps: " + geneticSteps);
+    }
+
+    // Brute Force approach
+    public static void bruteForce(int n) {
+        int[] queens = new int[n];
+        solve(queens, 0, n);
+    }
+
+    public static boolean solve(int[] queens, int row, int n) {
+        if (row == n) {
+            printSolution(queens);
+            return true;
+        }
+        for (int col = 0; col < n; col++) {
+            queens[row] = col;
+            bruteForceSteps++;
+            if (isValid(queens, row) && solve(queens, row + 1, n)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Genetic algorithm approach
+    public static void genetic(int n) {
+        int populationSize = 100;
+        int maxGenerations = 1000;
+        List<int[]> population = initializePopulation(n, populationSize);
+        Random random = new Random();
+
+        for (int generation = 1; generation <= maxGenerations; generation++) {
+            List<int[]> nextGeneration = new ArrayList<>();
+            for (int i = 0; i < populationSize; i++) {
+                int[] parent1 = selectParent(population, random);
+                int[] parent2 = selectParent(population, random);
+                int[] offspring = crossover(parent1, parent2, random);
+                mutate(offspring, random);
+                if (isSolution(offspring)) {
+                    printSolution(offspring);
+                    geneticSteps++;
+                    return;
+                }
+                nextGeneration.add(offspring);
+                geneticSteps++;
+            }
+            population = nextGeneration;
+        }
+    }
+
+    public static List<int[]> initializePopulation(int n, int populationSize) {
+        List<int[]> population = new ArrayList<>();
+        Random random = new Random();
+        for (int i = 0; i < populationSize; i++) {
+            int[] chromosome = new int[n];
+            for (int j = 0; j < n; j++) {
+                chromosome[j] = random.nextInt(n);
+            }
+            population.add(chromosome);
+        }
+        return population;
+    }
+
+    public static int[] selectParent(List<int[]> population, Random random) {
+        int index = random.nextInt(population.size());
+        return population.get(index);
+    }
+
+    public static int[] crossover(int[] parent1, int[] parent2, Random random) {
+        int[] offspring = new int[parent1.length];
+        int crossoverPoint = random.nextInt(parent1.length);
+        System.arraycopy(parent1, 0, offspring, 0, crossoverPoint);
+        System.arraycopy(parent2, crossoverPoint, offspring, crossoverPoint, parent2.length - crossoverPoint);
+        return offspring;
+    }
+
+    public static void mutate(int[] chromosome, Random random) {
+        if (random.nextDouble() < 0.05) { // Mutation probability
+            int index = random.nextInt(chromosome.length);
+            chromosome[index] = random.nextInt(chromosome.length);
+        }
+    }
+
+    public static boolean isSolution(int[] queens) {
+        for (int i = 0; i < queens.length; i++) {
+            for (int j = i + 1; j < queens.length; j++) {
+                if (queens[i] == queens[j] || Math.abs(queens[i] - queens[j]) == Math.abs(i - j)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static boolean isValid(int[] queens, int row) {
+        for (int i = 0; i < row; i++) {
+            if (queens[i] == queens[row] || Math.abs(queens[i] - queens[row]) == row - i) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void printSolution(int[] queens) {
+        System.out.print("Final State: ");
+        for (int i = 0; i < queens.length; i++) {
+            System.out.print("(" + i + "," + queens[i] + ") ");
+        }
+        System.out.println();
+    }
+}
+------------------------------------------------------------------------
+import java.util.*;
+
+public class HangmanGame {
+    private static final String[] WORDS = {"computer", "java", "programming", "algorithm", "openai"};
+    private static final int MAX_TRIES = 6;
+
+    private String secretWord;
+    private StringBuilder guessedWord;
+    private Set<Character> guessedLetters;
+    private int triesLeft;
+
+    public HangmanGame() {
+        secretWord = WORDS[(int) (Math.random() * WORDS.length)];
+        guessedWord = new StringBuilder("-".repeat(secretWord.length()));
+        guessedLetters = new HashSet<>();
+        triesLeft = MAX_TRIES;
+    }
+
+    public void play() {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Welcome to Hangman!");
+        System.out.println("Try to guess the word:");
+        System.out.println(guessedWord);
+
+        while (triesLeft > 0 && guessedWord.indexOf("-") != -1) {
+            System.out.println("Guess a letter:");
+            char guess = scanner.next().charAt(0);
+            if (!Character.isLetter(guess)) {
+                System.out.println("Please enter a valid letter.");
+                continue;
+            }
+
+            guessLetter(guess);
+            System.out.println("Word: " + guessedWord);
+            System.out.println("Tries left: " + triesLeft);
+        }
+
+        if (guessedWord.indexOf("-") == -1) {
+            System.out.println("Congratulations! You guessed the word: " + secretWord);
+        } else {
+            System.out.println("Sorry, you ran out of tries. The word was: " + secretWord);
+        }
+    }
+
+    private void guessLetter(char guess) {
+        if (guessedLetters.contains(guess)) {
+            System.out.println("You've already guessed this letter.");
+            return;
+        }
+
+        guessedLetters.add(guess);
+
+        if (secretWord.indexOf(guess) != -1) {
+            for (int i = 0; i < secretWord.length(); i++) {
+                if (secretWord.charAt(i) == guess) {
+                    guessedWord.setCharAt(i, guess);
+                }
+            }
+        } else {
+            triesLeft--;
+            System.out.println("Incorrect guess!");
+        }
+    }
+
+    public static void main(String[] args) {
+        HangmanGame game = new HangmanGame();
+        game.play();
+    }
+}
+---------------------------------------------------------------------------------
+
+import java.util.Arrays;
+
+public class MapColoring {
+
+    // Function to check if it is safe to assign color c to vertex v
+    static boolean isSafe(int v, int[][] graph, int[] color, int c) {
+        for (int i = 0; i < graph.length; i++) {
+            if (graph[v][i] == 1 && c == color[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Recursive function to solve map coloring problem using backtracking
+    static boolean graphColoringUtil(int[][] graph, int m, int[] color, int v) {
+        if (v == graph.length)
+            return true;
+
+        for (int c = 1; c <= m; c++) {
+            if (isSafe(v, graph, color, c)) {
+                color[v] = c;
+                if (graphColoringUtil(graph, m, color, v + 1))
+                    return true;
+                color[v] = 0; // backtrack
+            }
+        }
+
+        return false;
+    }
+
+    // Main function to solve map coloring problem
+    static boolean graphColoring(int[][] graph, int m) {
+        int V = graph.length;
+        int[] color = new int[V];
+        Arrays.fill(color, 0);
+
+        if (!graphColoringUtil(graph, m, color, 0)) {
+            System.out.println("Solution does not exist");
+            return false;
+        }
+
+        // Print the solution
+        System.out.println("Solution exists and the coloring is:");
+        for (int i = 0; i < V; i++) {
+            System.out.print(color[i] + " ");
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        int[][] graph = {
+                {0, 1, 0, 1, 0},
+                {1, 0, 1, 1, 1},
+                {0, 1, 0, 1, 0},
+                {1, 1, 1, 0, 1},
+                {0, 1, 0, 1, 0}
+        };
+        int m = 3; // Number of colors
+        graphColoring(graph, m);
+    }
+}
+------------------------------------------------------------------------------------------------------
+import java.util.*;
+
+public class Main {
+
+    static Map<String, List<String>> adjacencyMap = new HashMap<>();
+    static Map<String, String> assignment = new HashMap<>();
+
+    static {
+        adjacencyMap.put("WA", Arrays.asList("NT", "SA"));
+        adjacencyMap.put("NT", Arrays.asList("WA", "SA", "QLD"));
+        adjacencyMap.put("SA", Arrays.asList("WA", "NT", "QLD", "NSW", "VIC"));
+        adjacencyMap.put("QLD", Arrays.asList("NT", "SA", "NSW"));
+        adjacencyMap.put("NSW", Arrays.asList("SA", "QLD", "VIC"));
+        adjacencyMap.put("VIC", Arrays.asList("SA", "NSW"));
+    }
+
+    static boolean isConsistent(String region, String color, Map<String, String> assignment) {
+        for (String neighbor : adjacencyMap.get(region)) {
+            if (assignment.containsKey(neighbor) && assignment.get(neighbor).equals(color))
+                return false;
+        }
+        return true;
+    }
+
+    static Optional<String> selectUnassignedVariable(Map<String, String> assignment, Set<String> colors) {
+        return adjacencyMap.keySet().stream()
+                .filter(region -> !assignment.containsKey(region))
+                .min(Comparator.comparingInt(region -> adjacencyMap.get(region).size()));
+    }
+
+    static boolean backtracking(Map<String, String> assignment, Set<String> colors) {
+        if (assignment.size() == adjacencyMap.size())
+            return true;
+
+        Optional<String> unassignedVar = selectUnassignedVariable(assignment, colors);
+        if (!unassignedVar.isPresent())
+            return false;
+
+        String region = unassignedVar.get();
+        for (String color : colors) {
+            if (isConsistent(region, color, assignment)) {
+                assignment.put(region, color);
+                if (backtracking(assignment, colors))
+                    return true;
+                assignment.remove(region);
+            }
+        }
+        return false;
+    }
+
+    public static void main(String[] args) {
+        Set<String> colors = new HashSet<>(Arrays.asList("Red", "Green", "Blue"));
+
+        if (backtracking(assignment, colors)) {
+            System.out.println("Solution exists:");
+            assignment.forEach((region, color) -> System.out.println(region + " -> " + color));
+        } else {
+            System.out.println("Solution does not exist");
+        }
+    }
+}
+-----------------------------------------------------------------------------------------------------
